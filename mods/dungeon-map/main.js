@@ -6,8 +6,11 @@ const CW = 9.6, CH = 22, FONT = "JetBrains Mono", FS = 16;
 const BESTIARY = ["k", "o", "g", "h", "n", "e", "S", "D", "L", "T", "C", "Y", "x", "j", "B", "q"];
 const SPECIES = { k: "kobold", o: "orc", g: "gnome", h: "dwarf", n: "nymph", e: "floating eye", S: "snake", D: "dragon", L: "lich", T: "troll", C: "centaur", Y: "yeti", x: "grid bug", j: "jelly", B: "bat", q: "rothe" };
 // Redact mode: private room names become NetHack room types, machine names become dungeon branches.
-const ROOM_TYPES = ["Zoo", "Graveyard", "Big Room", "Castle", "Medusa's Lair", "Vlad's Tower", "Beehive", "Barracks", "Throne Room", "Treasure Vault", "Oracle", "Delphi", "Minetown", "Temple",
-  "Shop", "Library", "Swamp", "Leprechaun Hall", "Cockatrice Nest", "Anthole", "Morgue", "Closet", "Wizard's Tower", "Valley of the Dead", "Orcus Town", "Asmodeus' Lair", "Baalzebub's Lair",
+const ROOM_TYPES = [
+  // generic room types: lowercase, as NetHack writes them
+  "zoo", "graveyard", "beehive", "barracks", "throne room", "treasure vault", "swamp", "leprechaun hall", "cockatrice nest", "anthole", "morgue", "temple", "shop", "library", "closet",
+  // unique places: capitalized
+  "Big Room", "Castle", "Medusa's Lair", "Vlad's Tower", "Oracle", "Delphi", "Minetown", "Wizard's Tower", "Valley of the Dead", "Orcus Town", "Asmodeus' Lair", "Baalzebub's Lair",
   "Juiblex's Swamp", "Rogue Level", "Mines' End", "Quest Portal", "Sanctum"];
 const LEVELS = ["Main Dungeon", "Gehennom", "Sokoban", "Gnomish Mines", "The Quest", "Fort Ludios", "Elemental Planes", "Astral Plane"];
 const TOP = CH; // row reserved at the top for the message line
@@ -130,6 +133,12 @@ export default class DungeonMap extends View {
       for (let k = 0; k < pool.length && taken.has(pool[i]); k++) i = (i + 1) % pool.length;
       al[key] = forced ?? pool[i]; aliasDirty = true;
     };
+    // Aliases stored before the catalog changed its capitalization are brought up to date.
+    for (const k of Object.keys(al)) {
+      if (!k.startsWith("r:")) continue;
+      const m = ROOM_TYPES.find((v) => v.toLowerCase() === al[k].toLowerCase());
+      if (m && m !== al[k]) { al[k] = m; aliasDirty = true; }
+    }
     for (const l of lv) give("m:" + l.name, LEVELS, l.key === "" ? "Main Dungeon" : undefined);
     for (const x of allSp) give("r:" + x.name, ROOM_TYPES);
     if (aliasDirty) setShared("dungeon.aliases", al);
