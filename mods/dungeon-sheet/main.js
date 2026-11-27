@@ -62,7 +62,8 @@ export default class DungeonSheet extends View {
 
   render() {
     const t = theme(), now = Date.now();
-    const redact = !!shared("dungeon.redact"); // redact mode: show a NetHack item instead of the terminal title
+    const redact = !!shared("dungeon.redact");
+    const al = shared("dungeon.aliases") ?? {}; // redact mode: show a NetHack item instead of the terminal title
     const hues = [t.ansi1, t.ansi2, t.ansi3, t.ansi4, t.ansi5, t.ansi6, t.ansi9, t.ansi10, t.ansi11, t.ansi12, t.ansi13, t.ansi14];
     const ag = agents(), terms = terminals();
     this.track(ag, now);
@@ -82,9 +83,9 @@ export default class DungeonSheet extends View {
     const groups = spaces().filter((s) => (s.machine ?? "") === curKey).map((s) => ({ s, mine: ag.filter((a) => a.space === s.id) })).filter((g) => g.mine.length);
 
     return v_flex().id("sheet-root").size_full().bg(t.chrome).p(10).gap(8).overflow_y_scrollbar().font_family(FONT).text_size(13).text_color(t.foreground)
-      .child(div().text_color(t.ansi11).font_bold().child("Inventory · " + (curKey || shared("dungeon.host") || "local")))
+      .child(div().text_color(t.ansi11).font_bold().child("Inventory · " + (redact ? al["m:" + (curKey || shared("dungeon.host") || "local")] ?? "a level" : curKey || shared("dungeon.host") || "local")))
       .children(groups.map(({ s, mine }) => v_flex().gap(4)
-        .child(div().text_color(t.accent).child(s.name + (s.machine ? "@" + s.machine : "")))
+        .child(div().text_color(t.accent).child((redact ? al["r:" + s.name] ?? "a room" : s.name) + (s.machine ? "@" + (redact ? al["m:" + s.machine] ?? "a level" : s.machine) : "")))
         .children(mine.map((a) => {
           const hh = hash(a.address), [mk, mc, word] = MARK[a.status] ?? MARK.idle;
           const since = this.changed[a.address]?.t ?? now;

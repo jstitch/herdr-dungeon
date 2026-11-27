@@ -43,7 +43,7 @@ Needs: Herdr with agents that report their status (Claude Code, pi, …). JetBra
 | `_` | altar menu of the selected agent's room |
 | `Ctrl-P` / `?` / `Esc` | message log / help / close |
 
-The status line has buttons for **Redact** (shows NetHack items instead of terminal titles, handy for screenshots), **Layout** and **Settings**.
+The status line has buttons for **Redact** (shows NetHack items instead of terminal titles, NetHack room types instead of space names and dungeon branches instead of machine names; handy for screenshots), **Layout** and **Settings**.
 
 ## Good to know
 

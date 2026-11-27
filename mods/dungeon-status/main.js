@@ -12,7 +12,8 @@ export default class DungeonStatus extends View {
       .sort((a, b) => (a.key === "" ? -1 : b.key === "" ? 1 : a.key.localeCompare(b.key)));
     const want = shared("dungeon.level") ?? "";
     const at = Math.max(0, ms.findIndex((m) => m.key === want && m.ok));
-    const dl = `${at + 1}/${ms.length} ${ms[at]?.key || shared("dungeon.host") || "local"}`;
+    const lvName = ms[at]?.key || shared("dungeon.host") || "local";
+    const dl = `${at + 1}/${ms.length} ${shared("dungeon.redact") ? (shared("dungeon.aliases") ?? {})["m:" + lvName] ?? "a level" : lvName}`;
     return div().size_full().bg(t.chrome).px(12).flex().items_center().gap(18).text_size(14).text_color(t.foreground)
       .child(`Dlvl:${dl}`).child(`Rooms:${spaces().length}`).child(`Agents:${a.length}`)
       .child(div().text_color(t.working).child(`HP:${n("working")}`))

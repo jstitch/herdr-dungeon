@@ -43,7 +43,7 @@ Mouse:
 
 Keyboard (click the map first so it has focus): arrows or `h j k l` move the selection (yellow border) to the nearest creature in that direction; `Enter` focuses it; `p` peeks; `< >` change level; `_` opens the altar menu of its room; `Ctrl-P` shows the last 20 messages; `?` shows help; `Esc` closes either panel.
 
-Redact mode (`◐ Redact` in the status line, saved across restarts): the inventory shows a NetHack item (`blessed +2 long sword`, blessed/uncursed/cursed by state) instead of its terminal title, and messages drop the title they carry. Room and machine names, and the combat terminal, are not touched.
+Redact mode (`◐ Redact` in the status line, saved across restarts): the inventory shows a NetHack item (`blessed +2 long sword`, blessed/uncursed/cursed by state) instead of its terminal title, and messages drop the title they carry. Room names become NetHack room types (`Zoo`, `Graveyard`, `Castle`, `Medusa's Lair`, `Vlad's Tower`, `Beehive`, … 32 in all) and machine names become dungeon branches (the local machine is always `Main Dungeon`; others take `Gehennom`, `Sokoban`, `Gnomish Mines`, …). Each real name gets its alias once, remembered, and no two names share an alias while the catalog lasts. The `dungeon level` room and the combat terminal are not touched.
 
 Messages (English, last 50 kept): `The <monster> in «room» needs you! (title)` (red) when an agent becomes blocked; `The <monster> in «room» drops some gold: title` (gold) when `working` becomes `done`; `A/An <monster> appears in «room»!` and `Suddenly the <monster> in «room» disappears out of sight!` when an agent appears or goes away; `The ground trembles: room «x» appears.` / `Room «x» collapses.`; `The stairs to <machine> collapse!` / `… are passable again.` The same message about the same agent is throttled to once per 5 s, and nothing is reported during the first 3 s after the map loads.
 
@@ -53,7 +53,7 @@ Messages (English, last 50 kept): `The <monster> in «room» needs you! (title)`
 - `themes/dungeon.json`: near-black terminal background, green-phosphor accent `#7dff7d`, `working #7dff7d`, `blocked #ff7a66`, `done #ffd75e`, `idle #4a524a`.
 - `mods/dungeon-map` (`focusable: true`): builds a character grid per render; positions come from a seeded PRNG over a grid of slots; corridors are L-shaped paths between room centers; creatures, stairs, altars, trapdoors, terminals and titles are absolutely positioned overlays on top of the grid. Uses `spaces()`, `agents()`, `terminals()`, `panes()`, `machines()`, `shared`/`setShared` (key `dungeon.level`, `dungeon.host`), `setAgentOrder`, `openOverlay`, `exec` and `localStorage` (keys `pos`, `msgs`).
 - `mods/dungeon-sheet`: the inventory; reads the `herdr.model` label from `terminals()`; keeps `changed` in `localStorage` to time each state.
-- `mods/dungeon-status`: the status line; the Redact toggle lives in shared state `dungeon.redact` and `localStorage` key `redact`.
+- `mods/dungeon-status`: the status line; the Redact toggle lives in shared state `dungeon.redact` and `localStorage` key `redact`; the name aliases live in shared state `dungeon.aliases`.
 - `mods/dungeon-menu`: the altar popup (`knownAgents`, `run("tab.new")`).
 - Commands used: `agent.focus`, `terminal.peek`, `tab.new`, `space.new`, `space.close`, `space.rename`, `layout.switch`, `app.settings`.
 

@@ -5,6 +5,11 @@ const CW = 9.6, CH = 22, FONT = "JetBrains Mono", FS = 16;
 // Bestiary: species comes from the agent's address; its state is a separate mark.
 const BESTIARY = ["k", "o", "g", "h", "n", "e", "S", "D", "L", "T", "C", "Y", "x", "j", "B", "q"];
 const SPECIES = { k: "kobold", o: "orc", g: "gnome", h: "dwarf", n: "nymph", e: "floating eye", S: "snake", D: "dragon", L: "lich", T: "troll", C: "centaur", Y: "yeti", x: "grid bug", j: "jelly", B: "bat", q: "rothe" };
+// Redact mode: private room names become NetHack room types, machine names become dungeon branches.
+const ROOM_TYPES = ["Zoo", "Graveyard", "Big Room", "Castle", "Medusa's Lair", "Vlad's Tower", "Beehive", "Barracks", "Throne Room", "Treasure Vault", "Oracle", "Delphi", "Minetown", "Temple",
+  "Shop", "Library", "Swamp", "Leprechaun Hall", "Cockatrice Nest", "Anthole", "Morgue", "Closet", "Wizard's Tower", "Valley of the Dead", "Orcus Town", "Asmodeus' Lair", "Baalzebub's Lair",
+  "Juiblex's Swamp", "Rogue Level", "Mines' End", "Quest Portal", "Sanctum"];
+const LEVELS = ["Main Dungeon", "Gehennom", "Sokoban", "Gnomish Mines", "The Quest", "Fort Ludios", "Elemental Planes", "Astral Plane"];
 const TOP = CH; // row reserved at the top for the message line
 const hash = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 const rnd = (seed) => { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); };
@@ -114,6 +119,29 @@ export default class DungeonMap extends View {
     if (idx < 0) { idx = Math.max(0, lv.findIndex((l) => l.key === "")); if (want !== lv[idx]?.key && lv[idx]) setShared("dungeon.level", lv[idx].key); }
     const curKey = lv[idx]?.key ?? "";
     this.lv = lv; this.idx = idx;
+    // Aliases are assigned once per private name, kept in shared state (so the other mods read them) and never repeat while the catalog lasts.
+    const redact = !!shared("dungeon.redact");
+    const al = { ...(shared("dungeon.aliases") ?? {}) };
+    let aliasDirty = false;
+    const give = (key, pool, forced) => {
+      if (al[key]) return;
+      const taken = new Set(Object.values(al));
+      let i = hash(key) % pool.length;
+      for (let k = 0; k < pool.length && taken.has(pool[i]); k++) i = (i + 1) % pool.length;
+      al[key] = forced ?? pool[i]; aliasDirty = true;
+    };
+    for (const l of lv) give("m:" + l.name, LEVELS, l.key === "" ? "Main Dungeon" : undefined);
+    for (const x of allSp) give("r:" + x.name, ROOM_TYPES);
+    if (aliasDirty) setShared("dungeon.aliases", al);
+    const dn = (s) => (s.id === "__stairs" ? s.name : redact ? al["r:" + s.name] ?? "a room" : s.name);
+    const dm = (name) => (redact ? al["m:" + name] ?? "a level" : name);
+    const lab = (s) => `${dn(s)}${s.machine ? "@" + dm(s.machine) : ""}`;
+    const fmt = (x) => {
+      if (!redact) return x;
+      return x.replace(/ \([^()]*\)$/, "").replace(/(drops some gold): .*$/, "$1.")
+        .replace(/«([^»]*)»/g, (_m, n) => `«${al["r:" + n] ?? "a room"}»`)
+        .replace(/(stairs to )(.+?)( collapse| are)/, (_m, a, n, c) => `${a}${al["m:" + n] ?? "a distant level"}${c}`);
+    };
     const snap = {
       ag: new Map(ag.map((a) => [a.address, { st: a.status, title: a.title || a.pane_name || a.address, room: a.space_name }])),
       sp: new Map(allSp.map((x) => [x.id, x.name])),
@@ -142,7 +170,7 @@ export default class DungeonMap extends View {
       const shells = s.id === "__stairs" ? [] : allPanes.filter((q) => q.terminal && !q.mod && q.status == null && tabSpace.get(q.tab) === s.id);
       const R = rnd(hash(s.id));
       const slot = slots[order.indexOf(i)] ?? slots[0];
-      const need = s.id === "__stairs" ? 30 : Math.max(s.name.length + 4, mine.length * 3 + 5, shells.length * 2 + 5);
+      const need = s.id === "__stairs" ? 30 : Math.max(lab(s).length + 6, mine.length * 3 + 5, shells.length * 2 + 5);
       const w = Math.max(10, Math.min(sw - 3, need));
       const perRow = Math.max(1, Math.floor((w - 4) / 3));
       const perRowS = Math.max(1, Math.floor((w - 4) / 2));
@@ -190,7 +218,7 @@ export default class DungeonMap extends View {
     });
 
     for (const r of rooms) {
-      const label = ` ${r.s.name}${r.s.machine ? "@" + r.s.machine : ""} `.slice(0, r.w - 4);
+      const label = ` ${lab(r.s)} `.slice(0, r.w - 4);
       [...label].forEach((ch, i) => put(r.x + 2 + i, r.y, ch, r.s.active ? t.accent : r.hue));
     }
 
@@ -224,7 +252,7 @@ export default class DungeonMap extends View {
       const parts = !c ? [["?", t.dim]] : [["!" + c.blocked, t.blocked, c.blocked], ["$" + c.done, t.done, c.done], ["*" + c.working, t.working, c.working]].filter((q) => q[2]);
       const el = div().id(`stair-${g}`).absolute().left((sr.x + 2) * CW + CW / 2).top((sr.y + 1 + row) * CH + CH / 2 + TOP).h(CH)
         .flex().flex_row().whitespace_nowrap().text_color(t.ansi11)
-        .child(div().font_bold().child(g)).child(div().text_color(L.ready ? t.foreground : t.dim).child(` ${L.name} `))
+        .child(div().font_bold().child(g)).child(div().text_color(L.ready ? t.foreground : t.dim).child(` ${dm(L.name)} `))
         .children(parts.map((q) => div().text_color(q[1]).child(q[0] + " ")));
       if (L.ready) el.hover((st) => st.bg(t.raised)).on_click(() => setShared("dungeon.level", L.key));
       else el.opacity(0.5);
@@ -255,9 +283,6 @@ export default class DungeonMap extends View {
     const now = Date.now();
     const ago = (ms) => { const m = Math.floor(ms / 60000); return m < 1 ? "now" : m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ago`; };
     const KC = { blocked: t.blocked, done: t.done, info: t.foreground };
-    // Redact mode drops the terminal title that some messages carry.
-    const redact = !!shared("dungeon.redact");
-    const fmt = (x) => (redact ? x.replace(/ \([^()]*\)$/, "").replace(/(drops some gold): .*$/, "$1.") : x);
     const last = this.msgs[0];
     const bar = div().id("msgbar").absolute().left(0).top(0).w_full().h(CH).bg(t.chrome).px(10).flex().flex_row().items_center().gap(10).whitespace_nowrap().overflow_hidden()
       .child(div().text_color(last ? KC[last.kind] ?? t.foreground : t.muted).child(last ? fmt(last.text) : "You enter the dungeon."))
@@ -290,7 +315,7 @@ export default class DungeonMap extends View {
       .child(div().id("dm-probe").absolute().left(0).top(0).w(1000).h(10).opacity(0).on_size_change((sz, cx2) => { const k = sz.width / 1000; if (k > 0 && Math.abs(k - this.k) > 1e-3) { this.k = k; cx2.notify(); } }))
       .children(stairEls)
       .children(rooms.map((r) => {
-        const len = Math.min(` ${r.s.name}${r.s.machine ? "@" + r.s.machine : ""} `.length, r.w - 4);
+        const len = Math.min(` ${lab(r.s)} `.length, r.w - 4);
         return div().id(`title-${r.s.id}`).absolute().left((r.x + 2) * CW + CW / 2).top(r.y * CH + CH / 2 + TOP).w(len * CW).h(CH)
           .hover((st) => st.bg(t.raised).opacity(0.5))
           .on_mouse_down("left", (e) => { this.drag = { id: r.s.id, sx: e.position.x, sy: e.position.y, ox: r.x, oy: r.y, w: r.w, h: r.h, cx: r.x, cy: r.y, moved: false }; })
