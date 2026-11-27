@@ -1,0 +1,64 @@
+{
+  "id": "root",
+  "type": "column",
+  "theme": "dungeon",
+  "font": "JetBrains Mono",
+  "font_size": 14,
+  "children": [
+    {
+      "id": "top",
+      "type": "row",
+      "divider": {
+        "width": 1,
+        "color": "border"
+      },
+      "children": [
+        {
+          "id": "map",
+          "type": "block",
+          "size": {
+            "weight": 3
+          },
+          "content": {
+            "mod": "dungeon-map"
+          }
+        },
+        {
+          "id": "sheet",
+          "type": "block",
+          "size": {
+            "px": 300
+          },
+          "content": {
+            "mod": "dungeon-sheet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "combat",
+      "type": "block",
+      "size": {
+        "weight": 1
+      },
+      "border": {
+        "width": 1,
+        "color": "border"
+      },
+      "content": {
+        "agent": "focused"
+      }
+    },
+    {
+      "id": "status",
+      "type": "block",
+      "size": {
+        "px": 28
+      },
+      "content": {
+        "mod": "dungeon-status"
+      }
+    }
+  ],
+  "preview": "layouts/dungeon.png"
+}
